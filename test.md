@@ -1,6 +1,6 @@
 ## install
 
-First, install k8s, then use `cilium_istio_nstall.sh` or `istio_install.sh` to install them accordingly. You may need to install the dependency first.
+First, install k8s, then use `cilium_istio_nstall.sh` or `istio_install.sh` to install them accordingly. You may need to install the dependency first by running `bash ./deps.sh`
 
 You should replace the ip address of productpage when testing:
 
