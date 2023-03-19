@@ -196,6 +196,7 @@ metadata:
     app: productpage
     service: productpage
 spec:
+  clusterIP: 10.96.88.88
   ports:
   - port: 9080
     name: http

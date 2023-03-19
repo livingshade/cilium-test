@@ -2,10 +2,9 @@
 
 First, install k8s, then use `cilium_istio_nstall.sh` or `istio_install.sh` to install them accordingly. You may need to install the dependency first by running `bash ./deps.sh`
 
-You should replace the ip address of productpage when testing:
+Run test:
 
-`./wrk/wrk -t1 -c1 -d 10s http://10.104.61.154:9080 -L -s ./lua/gen.lua`
-
+`./wrk/wrk -t1 -c1 -d 10s http://10.96.88.88:9080 -L -s ./lua/gen.lua`
 
 
 ### test Cilium with Istio
@@ -67,14 +66,9 @@ sudo reboot
 
 bash ./k8s_setup.sh
 bash ./istio_install.sh
-
-kubectl apply -f ./k8s/istio/bookinfo-v1.yaml
-kubectl apply -f ./k8s/istio/bookinfo-gateway.yaml
-kubectl apply -f ./k8s/istio/destination-rule.yaml
-
-./wrk/wrk -t1 -c1 -d 10s http://10.104.61.154:9080 -L -s ./lua/gen.lua
-
 ```
+
+Then, refer to `istio_run.sh`
 
 
 ```
