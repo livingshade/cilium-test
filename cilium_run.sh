@@ -1,6 +1,6 @@
 set +ex
 
-kubectl apply -f ./k8s/istio/bookinfo-v1.yaml
+kubectl apply -f ./k8s/cilium/bookinfo-v1.yaml
 
 sleep 15
 
