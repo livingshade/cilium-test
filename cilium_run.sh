@@ -1,5 +1,7 @@
 set +ex
 
+cilium hubble disable
+
 kubectl apply -f ./k8s/cilium/bookinfo-v1.yaml
 
 sleep 15
