@@ -1,11 +1,5 @@
 set -ex
 
-## install helm
-curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
-sudo apt-get install apt-transport-https --yes
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
-sudo apt-get update
-sudo apt-get install helm
 
 . ./config.sh
 
@@ -58,16 +52,22 @@ sudo systemctl restart kubelet
 sudo kubeadm reset -f
 sudo rm -rf $HOME/.kube
 
-sudo kubeadm init --skip-phases=addon/kube-proxy
+sudo kubeadm init --skip-phases=addon/kube-proxy > init_output
 
 mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 
-
 # you don't need to do that if have worker nodes
 kubectl taint nodes --all node-role.kubernetes.io/control-plane-
 kubectl taint nodes --all node-role.kubernetes.io/master-
+
+export API_SERVER_IP=$(cat init_output | grep "kubeadm join" | awk -F'[ :]' '{print $3}')
+export API_SERVER_PORT=$(cat init_output | grep "kubeadm join" | awk -F'[ :]' '{print $4}')
+
+echo "set env $API_SERVER_IP::$API_SERVER_PORT"
+
+rm -f init_output
 
 # if more than one worker.
 # kubeadm join 130.127.133.224:6443 --token ... \
@@ -76,24 +76,26 @@ kubectl taint nodes --all node-role.kubernetes.io/master-
 # helm repo add cilium https://helm.cilium.io/
 
 # ip should match
-# export API_SERVER_IP="130.127.133.224"
-# export API_SERVER_PORT="6443"
+
 
 helm install cilium cilium/cilium --version 1.13.1 \
     --namespace kube-system \
     --set kubeProxyReplacement=strict \
     --set k8sServiceHost=${API_SERVER_IP} \
-    --set k8sServicePort=${API_SERVER_PORT}
+    --set k8sServicePort=${API_SERVER_PORT} \
+    --set-string extraConfig.enable-envoy-config=true
 
 
-kubectl -n kube-system get pods -l k8s-app=cilium
-# expect nodes info
 
-kubectl -n kube-system exec ds/cilium -- cilium status | grep KubeProxyReplacement
-# expect:
-# KubeProxyReplacement:    Strict  
 
-kubectl exec -it -n kube-system cilium-zr2pg -- cilium service list
+# kubectl -n kube-system get pods -l k8s-app=cilium
+# # expect nodes info
+
+# kubectl -n kube-system exec ds/cilium -- cilium status | grep KubeProxyReplacement
+# # expect:
+# # KubeProxyReplacement:    Strict  
+
+# kubectl exec -it -n kube-system cilium-zr2pg -- cilium service list
 # expect (change cilium pods name):
 #ID   Frontend               Service Type   Backend
 # [...]

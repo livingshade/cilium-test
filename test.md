@@ -81,3 +81,12 @@ Then, refer to `istio_run.sh`
      90%   39.38ms
      99%   61.82ms
 ```
+
+
+### L7 policy reproduce
+
+```bash
+bash ./cilium_proxyless_install.sh
+
+kubectl apply -f ./k8s/L7/bookinfo-v2.yaml 
+```
