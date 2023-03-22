@@ -2,8 +2,6 @@
 
 set -ex
 
-
-
 # Install Istio
 # Delete if installed
 if [ -d "./istio-1.14.1" ];

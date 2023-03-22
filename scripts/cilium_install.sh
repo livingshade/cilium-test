@@ -27,7 +27,7 @@ cilium status --wait
 # Image versions    cilium             quay.io/cilium/cilium:v1.9.5: 2
 #                   cilium-operator    quay.io/cilium/operator-generic:v1.9.5: 2
 
-cilium connectivity test
+# cilium connectivity test
 
 # expect
 # ...

@@ -38,6 +38,8 @@ sudo apt install -y bison build-essential cmake flex git libedit-dev   libllvm11
 sudo apt-get install luarocks -y
 
 
+cd $PROJECT_DIR
+
 if [ -d "$PROJECT_DIR/bcc" ];
 then sudo rm -rf $PROJECT_DIR/bcc;
 fi

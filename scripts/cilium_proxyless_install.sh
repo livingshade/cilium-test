@@ -77,16 +77,12 @@ rm -f init_output
 
 # ip should match
 
-
 helm install cilium cilium/cilium --version 1.13.1 \
     --namespace kube-system \
     --set kubeProxyReplacement=strict \
     --set k8sServiceHost=${API_SERVER_IP} \
     --set k8sServicePort=${API_SERVER_PORT} \
     --set-string extraConfig.enable-envoy-config=true
-
-
-
 
 # kubectl -n kube-system get pods -l k8s-app=cilium
 # # expect nodes info
