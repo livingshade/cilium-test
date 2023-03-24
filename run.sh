@@ -1,10 +1,13 @@
 set +ex
 
 suffix=$1
+kubectl delete -f ./k8s/bookinfo/bookinfo-v1.yaml
+
+sleep 30
 
 kubectl apply -f ./k8s/bookinfo/bookinfo-v1.yaml
 
-sleep 10
+sleep 30
 
 rm -f result.csv
 
@@ -18,11 +21,9 @@ do
     sleep 5
 done
 
-timestamp=$(date '+%Y-%m-%d')
+timestamp=$(date '+%Y-%m-%d+%H:%M:%S')
 
 mkdir -p result
-
-echo $timestamp
 
 echo "move result to ./result/${timestamp}.${suffix}.csv"
 mv "result.csv" "./result/${timestamp}.${suffix}.csv"
