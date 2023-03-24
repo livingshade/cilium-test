@@ -79,5 +79,6 @@ sudo apt-get install helm
 
 echo "source <(kubectl completion bash)" >> ~/.bashrc # add autocomplete permanently to your bash shell.
 echo "alias ku='kubectl'" >> ~/.bashrc  
+echo "alias ku='kubectl'" >> ~/.zshrc  
 
 set +ex
