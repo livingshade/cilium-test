@@ -50,7 +50,7 @@ sudo systemctl restart containerd
 sudo systemctl daemon-reload
 sudo systemctl restart kubelet
 
-sudo rm -rf /etc/cni/net.d
+sudo rm -f /etc/cni/net.d/*
 
 if type cilium >/dev/null 2>&1; then
   cilium uninstall >/dev/null 2>&1
