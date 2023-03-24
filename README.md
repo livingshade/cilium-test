@@ -87,7 +87,15 @@ For ingress and egress traffic, Cilium supports Gateway API.
 
 Cilium supports for L7 traffic management between pods is not as complete as Istio.
 
+## Performance
 
+We use bookinfo-v1 to test the performance.
+
+## Reference
+
+- Cilium [https://cilium.io/] and its Slack channel.
+- Isovalent. There are many blogs that clearly illustrate the architecture about the service mesh. It helps build a high level understanding about Cilium, but somehow lacks codes and toturials. [https://isovalent.com/blog/]
+- A Chinese blog that elaborates how to install & deploy k8s related services. [https://tinychen.com/tags/cilium/]
 
 
 
