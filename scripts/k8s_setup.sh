@@ -44,22 +44,36 @@ root = "${CONTAINERD_ROOT_PATH}"
 state = "${CONTAINERD_STATE_PATH}"
 EOF
 sudo systemctl restart containerd
-sudo containerd config dump
+#sudo containerd config dump
 
 
 sudo systemctl daemon-reload
 sudo systemctl restart kubelet
 
+sudo rm -rf /etc/cni/net.d
+
+if type cilium >/dev/null 2>&1; then
+  cilium uninstall >/dev/null 2>&1
+fi
+
 sudo kubeadm reset -f
 sudo rm -rf $HOME/.kube
+
 sudo kubeadm init --pod-network-cidr 10.244.0.0/17 # check the output and execute command to setup the cluster
 
 mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 
-kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
-
+if [ $CNI == "flannel" ]
+then
+echo "use flannel CNI"
+. ./scripts/cni_flannel.sh
+elif [ $CNI == "cilium" ]
+then
+echo "use Cilium CNI"
+. ./scripts/cni_cilium.sh
+fi
 ### for data plane
 # kubeadm join xxx 
 

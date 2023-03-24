@@ -69,6 +69,9 @@ We use bookinfo application to show the functionality and performance. To deploy
 kubectl apply -f ./k8s/<your-cluster-setting>/bookinfo-v1.yaml
 ```
 
+`./wrk/wrk -t1 -c1 -d 10s http://10.96.88.88:9080 -L -s ./lua/gen.lua`
+
+
 `your-cluster-setting` can be `Cilium` or `Istio`, depends on what you have installed.
 
 ## Functionalites
