@@ -44,14 +44,15 @@ root = "${CONTAINERD_ROOT_PATH}"
 state = "${CONTAINERD_STATE_PATH}"
 EOF
 sudo systemctl restart containerd
-#sudo containerd config dump
 
 
 sudo systemctl daemon-reload
 sudo systemctl restart kubelet
 
+# This is important since kubeadm reset does not clear that.
 sudo rm -f /etc/cni/net.d/*
 
+# run cilium uninstall if cilium is installed.
 if type cilium >/dev/null 2>&1; then
   cilium uninstall >/dev/null 2>&1
 fi
@@ -59,6 +60,7 @@ fi
 sudo kubeadm reset -f
 sudo rm -rf $HOME/.kube
 
+# this is necessary for flannel, I don't know whether Cilium needs that too.
 sudo kubeadm init --pod-network-cidr 10.244.0.0/17 # check the output and execute command to setup the cluster
 
 mkdir -p $HOME/.kube
