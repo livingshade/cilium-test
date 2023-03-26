@@ -8,29 +8,27 @@ Run `bash ./scripts/deps.sh` to install the dependency. The script is only teste
 
 ### CNI 
 
-Then run `bash ./scripts/k8s_setup.sh` to set up Kubernetes environments and CNI. You can choose `Cilium` or `Flannel` or `Cilium kubeproxy replacement` as CNI, by changing the corresponding variable in `config.sh`. For `Cilium kubeproxy replacement`, refer to section kubeproxy-free for detail.
+Run `bash ./scripts/k8s_setup.sh` to set up Kubernetes environments and CNI. You can choose `Cilium` or `Flannel` or `Cilium kubeproxy replacement` as CNI, by changing the variable in `config.sh`. `Cilium kubeproxy replacement` is used to set kubeproxy-fre Cilium servicemesh.
 
-After that, you can use `kubectl get nodes` to see whether all nodes are `READY`. You should check whether coredns service is running by `kubectl get pods -n=kube-system`.
-
-You might also use `cilium connectivity test` as sanity check.
+After that, you can use `kubectl get nodes` to see whether all nodes are `READY`. You should check whether coredns service is running by `kubectl get pods -n=kube-system`. You might also use `cilium connectivity test` as sanity check.
 
 ## Servicemesh
 
 ### Istio control plane
 
-Run `bash ./scripts/istio_install.sh`.
+Run `./scripts/istio_install.sh` to install Istio.
 
 ### Cilium control plane
 
-Cilium can act as CNI, as well as control plane. For some reasons, the default installation of Cilium only allow you to specify L3/L4 network policies and observability. 
+Cilium can act as CNI, as well as control plane. For some reasons, the default installation of Cilium only allow you to specify L3/L4 network policies and observability.
 
 #### kubeproxy-free
 
-To enforce L7 related functionalities, you must use `Cilium kubeproxy replacement` when running `k8s_setup.sh`
+To enforce L7 related functionalities, you must use `Cilium kubeproxy replacement` when running `k8s_setup.sh`.
 
 > Functionality like L7 policies achieved by Enovy CRD, requires that `kube-proxy` is fully replaced by Cilium. In that case, the installation is quite differenet. [Full document here](https://docs.cilium.io/en/stable/network/kubernetes/kubeproxy-free/)
 
-After installation, run the following scripts to ensure that `kubeproxy` is indeed replaced.
+After installation, run the following scripts as sanity check.
 
 ```bash
 kubectl -n kube-system exec ds/cilium -- cilium status | grep KubeProxyReplacement
@@ -51,36 +49,31 @@ kubectl exec -it -n kube-system cilium-<your_pod_hash_val> -- cilium service lis
 
 #### Hubble
 
-As long as Cilium is installed, you can use `bash ./scripts/hubble.sh` to enable hubble and access its fancy UI. [More details here](https://docs.cilium.io/en/stable/gettingstarted/hubble/)
+With Cilium is installed, use `bash ./scripts/hubble.sh` to enable hubble and access its fancy UI. [More details here](https://docs.cilium.io/en/stable/gettingstarted/hubble/)
 
-By default, L7 traffic is not monitored. To enable that, refer to Observability section.
+By default, L7 traffic is not monitored. Refer to Observability section to enable L7 visibility.
 
 ### Istio with Cilium integration
 
 >Cilium’s Istio integration allows Cilium to enforce HTTP L7 network policies for mTLS protected traffic within the Istio sidecar proxies. In that sense, Cilium replace the CNI and possbily observability that originally using by Istio, but still keeps the Istio's powerful L7 traffic management features. [Full document here](https://docs.cilium.io/en/stable/network/istio/).
 
-Run `bash ./scripts/cilium_istio_install.sh`. 
-
-Note that if you should use only use this script when you want to Cilium to enforce L7 policy and using Istio as control plane at the same time.
-
+Run `bash ./scripts/cilium_istio_install.sh` to use that feature. However, this is not recommended. Use normal Istio control plane unless you deliberately want  those features.
 
 ### Cleanup
 
 I believe the best way is `sudo reboot`. 😄 
 
-Note that you need to run `k8s_setup.sh` each time when changing the CNI, you may refer to the comments in that script for details.
+After reboot, run `k8s_setup.sh` again, you may refer to the comments in that script for details.
 
 ## Example
 
-We use bookinfo application to show the functionality and performance. To deploy the application:
+We use bookinfo application to evaluate the functionality and performance. To deploy the application:
 
 ```bash
 kubectl apply -f ./k8s/bookinfo/bookinfo-v1.yaml
-
+# run lua scripts to ensure bookinfo services are accessable.
 ./wrk/wrk -t1 -c1 -d 10s http://10.96.88.88:9080 -L -s ./lua/gen.lua
 ```
-
-To reproduce, run `bash ./run.sh <suffix>` and the result will be saved to `./result/<data>.<suffix>.csv`.
 
 ### Raw Performance
 
@@ -101,7 +94,7 @@ With no network policy enforced, we have the following results(averaged from 5 r
 
 `a + b` means that we use `a` as CNI and `b` as control plane.
 
-To reproduce the result, you should deploy each setting, and use `bash ./run.sh`.
+To reproduce the result, you should deploy each setting, and invoke `bash ./run.sh`.
 
 ## Functionalites
 
@@ -113,15 +106,26 @@ To reproduce the result, you should deploy each setting, and use `bash ./run.sh`
 
 >Fine grained access control on application protocol level to secure HTTP and remote procedure call (RPC) protocols, e.g the endpoint with label role=frontend can only perform the REST API call GET /userdata/[0-9]+, all other API interactions with role=backend are restricted.
 
-Cilium provides network policies, or more precisely, "passive access control".
-
-You can control whether and how an endpoint(pod/app) can access another endpoint, refer to the [offical documents](https://docs.cilium.io/en/stable/security/policy/language/#id1) for detailed examples.
+Cilium provides network policies. From my understanding, those policies are actually "passive access control". that allow/disallow certain endpoints to communicate with other endpoint, and how. For various policies, refer [offical documents](https://docs.cilium.io/en/stable/security/policy/language/#id1) and [starwar demo](https://docs.cilium.io/en/stable/gettingstarted/demo/).
 
 ### Traffic Management
+
+Here is an incomplete list for L7 traffic management features. `supported` means that the feature is natively supported, `require CRD` means that an Envoy config is needed. 
+
+| Features | Ingress/Egress | In Cluster |
+| --- | --- | --- |
+| Request Routing |  supported | require CRD |
+| Fault Injection |  N/A | require CRD |
+| TLS Termination |       supported      | N/A|
+| Traffic Transformation | supported | require CRD |
+| Circuit Breaking | N/A | require CRD |
+| Header Modification | supported | require CRD|
 
 #### North-South 
 
 For ingress and egress traffic, Cilium supports Gateway API.
+
+Refer to [this tutorial](https://isovalent.com/blog/post/tutorial-getting-started-with-the-cilium-gateway-api/) for examples.
 
 #### East-West
 
@@ -129,9 +133,9 @@ For communication between microservices, an CiliumEnvoyConfig CRD is required, w
 
 [This blog](https://www.solo.io/blog/cilium-service-mesh-in-action/) implemented a traffic splitting mechanism in Cilium.
 
-However, I must point out that the configuration is much more complex than that of Istio. 
+As such, Cilium's configs are almost surely more complex and difficult to write, you can refer to `./k8s/L7` for some examples and compare the differences.
 
-You can refer to `./k8s/L7` for some yaml config example, and compare the differnce. 
+
 
 ### Observability
 
@@ -151,10 +155,18 @@ One way is to enforce L7 policy. Refer to [this example](https://docs.cilium.io/
 
 For more advanced data-collecting and metrics, you should refer to [this demo](https://github.com/isovalent/cilium-grafana-observability-demo). [I have successfully reproduced this example]
 
-
 ### Other Features
 
-There are some features that mentioned in blog but I have not yet found related documents. I will list the feature and the source.
+There are some features that mentioned in blog but I have not tried yet. I will list the feature and the source.
+
+- Security
+    - [Transparent Encryption with IPsec and WireGuard](https://isovalent.com/blog/post/tutorial-transparent-encryption-with-ipsec-and-wireguard/)
+    - [Tetragon](https://isovalent.com/blog/post/2022-05-16-tetragon/)
+    - [Mutual Authentication](https://isovalent.com/blog/post/2022-05-03-servicemesh-security/)
+- TCP
+    - [TCP Congestion Control and BBR](https://isovalent.com/blog/post/accelerate-network-performance-with-cilium-bbr/)
+    - [Bandwith Manager](https://isovalent.com/blog/post/addressing-bandwidth-exhaustion-with-cilium-bandwidth-manager/)
+- [Azure CNI](https://isovalent.com/blog/post/tutorial-azure-cni-powered-by-cilium/)
 
 ## Reference
 
