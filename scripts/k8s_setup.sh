@@ -60,8 +60,13 @@ fi
 sudo kubeadm reset -f
 sudo rm -rf $HOME/.kube
 
+if [ $CNI == "cilium-kubeproxy-replace" ] 
+then
+sudo kubeadm init --skip-phases=addon/kube-proxy > init_output
+else 
 # this is necessary for flannel, I don't know whether Cilium needs that too.
 sudo kubeadm init --pod-network-cidr 10.244.0.0/17 # check the output and execute command to setup the cluster
+fi
 
 mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
@@ -75,6 +80,11 @@ elif [ $CNI == "cilium" ]
 then
 echo "use Cilium CNI"
 . ./scripts/cni_cilium.sh
+elif [ $CNI == "cilium-kubeproxy-replace" ]
+then
+echo "us Cilium and replace kube-proxy"
+. ./scripts/cni_kubeproxy_replace.sh
+rm -f init_output
 fi
 ### for data plane
 # kubeadm join xxx 

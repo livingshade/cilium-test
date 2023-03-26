@@ -1,74 +1,11 @@
 set -ex
 
-
-. ./config.sh
-
-sudo modprobe br_netfilter
-cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
-br_netfilter
-EOF
-
-cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
-net.bridge.bridge-nf-call-ip6tables = 1
-net.bridge.bridge-nf-call-iptables = 1
-EOF
-sudo sysctl --system
-
-sudo mkdir -p /etc/docker
-sudo mkdir -p ${DOCKER_DATA_ROOT}
-cat <<EOF | sudo tee /etc/docker/daemon.json
-{
-  "exec-opts": ["native.cgroupdriver=systemd"],
-  "log-driver": "json-file",
-  "log-opts": {
-    "max-size": "100m"
-  },
-  "storage-driver": "overlay2",
-  "data-root": "${DOCKER_DATA_ROOT}"
-}
-EOF
-
-sudo systemctl enable docker
-sudo systemctl daemon-reload
-sudo systemctl restart docker
-
-
-sudo swapoff -a
-
-sudo rm -f /etc/containerd/config.toml
-sudo mkdir -p ${CONTAINERD_ROOT_PATH}
-sudo mkdir -p ${CONTAINERD_STATE_PATH} 
-cat <<EOF | sudo tee /etc/containerd/config.toml
-root = "${CONTAINERD_ROOT_PATH}"
-state = "${CONTAINERD_STATE_PATH}"
-EOF
-sudo systemctl restart containerd
-sudo containerd config dump
-
-
-sudo systemctl daemon-reload
-sudo systemctl restart kubelet
-
-sudo kubeadm reset -f
-sudo rm -rf $HOME/.kube
-
-sudo kubeadm init --skip-phases=addon/kube-proxy > init_output
-
-mkdir -p $HOME/.kube
-sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-sudo chown $(id -u):$(id -g) $HOME/.kube/config
-
-# you don't need to do that if have worker nodes
-kubectl taint nodes --all node-role.kubernetes.io/control-plane-
-kubectl taint nodes --all node-role.kubernetes.io/master-
-
 export API_SERVER_IP=$(cat init_output | grep "kubeadm join" | awk -F'[ :]' '{print $3}')
 export API_SERVER_PORT=$(cat init_output | grep "kubeadm join" | awk -F'[ :]' '{print $4}')
 
 echo "set env $API_SERVER_IP::$API_SERVER_PORT"
 
-rm -f init_output
-
+cat init_output
 # if more than one worker.
 # kubeadm join 130.127.133.224:6443 --token ... \
 # 	--discovery-token-ca-cert-hash sha256:...
@@ -76,7 +13,6 @@ rm -f init_output
 # helm repo add cilium https://helm.cilium.io/
 
 # ip should match
-
 helm install cilium cilium/cilium --version 1.13.1 \
     --namespace kube-system \
     --set kubeProxyReplacement=strict \
@@ -102,5 +38,4 @@ helm install cilium cilium/cilium --version 1.13.1 \
 # 6    192.168.178.29:31940   NodePort       1 => 10.217.0.107:80
 #                                            2 => 10.217.0.149:80
 # 7    172.16.0.29:31940      NodePort       1 => 10.217.0.107:80
-
 set +ex

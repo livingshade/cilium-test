@@ -4,4 +4,5 @@ export CONTAINERD_STATE_PATH=/mnt/containerd/state
 export DOCKER_USER="livingshade"
 export GO_USER="livingshade"
 #export CNI="flannel"
-export CNI="cilium"
+#export CNI="cilium"
+export CNI="cilium-kubeproxy-replace"

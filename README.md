@@ -1,41 +1,36 @@
 # Cilium track
 
-This repo acts as a summary of Cilium documentation.
+This repo acts as a brief summary, and some reproduce efforts, of Cilium documentation.
 
 ## Prerequisites  
 
-Run `bash ./scripts/deps.sh` to install the dependency if you are using ubuntu. 
+Run `bash ./scripts/deps.sh` to install the dependency. The script is only tested in Ubuntu 20.04.
 
 ### CNI 
 
-Then run `bash ./scripts/k8s_setup.sh` to set up Kubernetes environments and CNI. You can choose `Cilium` or `Flannel` as CNI by changing the corresponding variables in `config.sh`.
+Then run `bash ./scripts/k8s_setup.sh` to set up Kubernetes environments and CNI. You can choose `Cilium` or `Flannel` or `Cilium kubeproxy replacement` as CNI, by changing the corresponding variable in `config.sh`. For `Cilium kubeproxy replacement`, refer to section kubeproxy-free for detail.
 
-After that, you can use `kubectl get nodes` to see whether all nodes are `READY`. You should check whether coredns is running by `kubectl get pods -n=kube-system`.
+After that, you can use `kubectl get nodes` to see whether all nodes are `READY`. You should check whether coredns service is running by `kubectl get pods -n=kube-system`.
 
 You might also use `cilium connectivity test` as sanity check.
 
 ## Servicemesh
 
-### Istio with Cilium CNI
-
->Cilium’s Istio integration allows Cilium to enforce HTTP L7 network policies for mTLS protected traffic within the Istio sidecar proxies. In that sense, Cilium replace the CNI and possbily observability that originally using by Istio, but still keeps the Istio's powerful L7 traffic management features. [Full document here](https://docs.cilium.io/en/stable/network/istio/).
-
-Run `bash ./scripts/cilium_istio_install.sh` do achieve that. 
-
-### Istio with Flannel CNI
-
-This is used to compare the performance. 
+### Istio control plane
 
 Run `bash ./scripts/istio_install.sh`.
 
 ### Cilium control plane
 
-#### L7 policy
+Cilium can act as CNI, as well as control plane. For some reasons, the default installation of Cilium only allow you to specify L3/L4 network policies and observability. 
+
+#### kubeproxy-free
+
+To enforce L7 related functionalities, you must use `Cilium kubeproxy replacement` when running `k8s_setup.sh`
 
 > Functionality like L7 policies achieved by Enovy CRD, requires that `kube-proxy` is fully replaced by Cilium. In that case, the installation is quite differenet. [Full document here](https://docs.cilium.io/en/stable/network/kubernetes/kubeproxy-free/)
 
-Instead of using `k8s_setup.sh`, we need to run `bash ./scripts/cilium_proxyless_install.sh` to both set Kubernates and Cilium environments. Then run the sanity checks to ensure `kube-proxy` is fully replaced.
-
+After installation, run the following scripts to ensure that `kubeproxy` is indeed replaced.
 
 ```bash
 kubectl -n kube-system exec ds/cilium -- cilium status | grep KubeProxyReplacement
@@ -58,12 +53,22 @@ kubectl exec -it -n kube-system cilium-<your_pod_hash_val> -- cilium service lis
 
 As long as Cilium is installed, you can use `bash ./scripts/hubble.sh` to enable hubble and access its fancy UI. [More details here](https://docs.cilium.io/en/stable/gettingstarted/hubble/)
 
+By default, L7 traffic is not monitored. To enable that, refer to Observability section.
+
+### Istio with Cilium integration
+
+>Cilium’s Istio integration allows Cilium to enforce HTTP L7 network policies for mTLS protected traffic within the Istio sidecar proxies. In that sense, Cilium replace the CNI and possbily observability that originally using by Istio, but still keeps the Istio's powerful L7 traffic management features. [Full document here](https://docs.cilium.io/en/stable/network/istio/).
+
+Run `bash ./scripts/cilium_istio_install.sh`. 
+
+Note that if you should use only use this script when you want to Cilium to enforce L7 policy and using Istio as control plane at the same time.
+
 
 ### Cleanup
 
 I believe the best way is `sudo reboot`. 😄 
 
-Note that you need to run `k8s_setup.sh` each time when you tries to change the CNI, you may refer to that script for more detail.
+Note that you need to run `k8s_setup.sh` each time when changing the CNI, you may refer to the comments in that script for details.
 
 ## Example
 
@@ -75,12 +80,11 @@ kubectl apply -f ./k8s/bookinfo/bookinfo-v1.yaml
 ./wrk/wrk -t1 -c1 -d 10s http://10.96.88.88:9080 -L -s ./lua/gen.lua
 ```
 
-To get experiment data, run `bash ./run.sh <suffix>`, the result will be saved to `./result/<data>.<suffix>.csv`.
+To reproduce, run `bash ./run.sh <suffix>` and the result will be saved to `./result/<data>.<suffix>.csv`.
 
 ### Raw Performance
 
-With no network policy enforced, we have the following results(averaged in 5 run). 
-
+With no network policy enforced, we have the following results(averaged from 5 run). 
 
 |  | Avg(ms) | Stddev(ms) |
 | --- | --- | --- |
@@ -101,7 +105,6 @@ To reproduce the result, you should deploy each setting, and use `bash ./run.sh`
 
 ## Functionalites
 
-
 ### Network Policies
 
 >Identity-Based: Connectivity policies between endpoints (Layer 3), e.g. any endpoint with label role=frontend can connect to any endpoint with label role=backend.
@@ -113,7 +116,6 @@ To reproduce the result, you should deploy each setting, and use `bash ./run.sh`
 Cilium provides network policies, or more precisely, "passive access control".
 
 You can control whether and how an endpoint(pod/app) can access another endpoint, refer to the [offical documents](https://docs.cilium.io/en/stable/security/policy/language/#id1) for detailed examples.
-
 
 ### Traffic Management
 
@@ -127,9 +129,32 @@ For communication between microservices, an CiliumEnvoyConfig CRD is required, w
 
 [This blog](https://www.solo.io/blog/cilium-service-mesh-in-action/) implemented a traffic splitting mechanism in Cilium.
 
+However, I must point out that the configuration is much more complex than that of Istio. 
+
+You can refer to `./k8s/L7` for some yaml config example, and compare the differnce. 
+
+### Observability
+
+#### L3/L4
+
+If Hubble ui is enabled, open a browser at `localhost::12000` and invoke `run.sh`, you will see the graph of flows.
+
+You can also use `hubble observe` for a TCP-dump like output.
+
+#### L7
+
+To get L7 visiblity, the kubeproxy must be replaced beforehead.
+
+One way is to enforce L7 policy. Refer to [this example](https://docs.cilium.io/en/stable/network/servicemesh/envoy-traffic-management/#start-observing-traffic-with-hubble) for detail. [I have successfully reproduced this example]
+
+> but this requires the full policy for each selected endpoint to be written. To get more visibility into the application without configuring a full policy, Cilium provides a means of prescribing visibility via annotations when running in tandem with Kubernetes. Refer to [this](https://docs.cilium.io/en/stable/observability/visibility/) for details. [I have not been able to reproduce this example]
+
+For more advanced data-collecting and metrics, you should refer to [this demo](https://github.com/isovalent/cilium-grafana-observability-demo). [I have successfully reproduced this example]
+
+
 ### Other Features
 
-There are some features that mentioned in blog but I have not yet found related documents.
+There are some features that mentioned in blog but I have not yet found related documents. I will list the feature and the source.
 
 ## Reference
 
