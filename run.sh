@@ -13,7 +13,7 @@ rm -f result.csv
 
 echo "mean(us),stddev(us),p50(us),p90(us),p99(us),dur(us),#req,data(byte)" >> result.csv
 
-for i in 1 2 3 4 5
+for i in 1 2 3 4 5 6 7 8 9 10
 do
     echo "running $i th time"
     sleep 1
