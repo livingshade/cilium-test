@@ -22,7 +22,7 @@ for i in range(num_cols):
         if j == 0:
             continue;
         col_sum += float(data[j][i])
-    col_avg = col_sum / num_rows
+    col_avg = col_sum / (num_rows - 1)
     averages.append(col_avg)
 
 print("Column Averages:")
