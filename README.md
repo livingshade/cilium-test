@@ -1,4 +1,4 @@
-# Cilium track
+# Cilium
 
 This repo acts as a brief summary, and some reproduce efforts, of Cilium documentation.
 
@@ -57,7 +57,7 @@ By default, L7 traffic is not monitored. Refer to Observability section to enabl
 
 >Cilium’s Istio integration allows Cilium to enforce HTTP L7 network policies for mTLS protected traffic within the Istio sidecar proxies. In that sense, Cilium replace the CNI and possbily observability that originally using by Istio, but still keeps the Istio's powerful L7 traffic management features. [Full document here](https://docs.cilium.io/en/stable/network/istio/).
 
-Run `bash ./scripts/cilium_istio_install.sh` to use that feature. However, this is not recommended. Use normal Istio control plane unless you deliberately want  those features.
+Run `bash ./scripts/cilium_istio_install.sh` to use that feature. In that way, there will be no sidecar in each pod. Use normal Istio control plane unless you deliberately want  those features.
 
 ### Cleanup
 
@@ -79,14 +79,18 @@ kubectl apply -f ./k8s/bookinfo/bookinfo-v1.yaml
 
 With no network policy enforced, we have the following results(averaged from 5 run). 
 
-|  | Avg(ms) | Stddev(ms) |
+<!-- |  | Avg(ms) | Stddev(ms) |
 | --- | --- | --- |
 | Flannel CNI only | 14.00 | 9.43 |
 | Cilium CNI only | 13.99 | 1.15 |
 | Cilium + Hubble(L4) | 13.49 | 1.42 |
 | Cilium + Istio | 24.47 | 13.76 |
-| Flannel + Istio | 24.93 | 14.68 |
+| Flannel + Istio | 24.93 | 14.68 | -->
 
+| | Cilium CNI only | Cilium CNI + Istio | Cilium CNI + CTL(L4) |
+| --- | --- | --- | --- | 
+| Average Latency(ms) | 12.67 | 19.95 | 12.74 | 
+| Stddev(ms) | 0.39 | 12.53 | 0.45 | 
 
 `CNI only` means that we only deploy the CNI without the control plane.
 
@@ -154,6 +158,8 @@ One way is to enforce L7 policy. Refer to [this example](https://docs.cilium.io/
 > but this requires the full policy for each selected endpoint to be written. To get more visibility into the application without configuring a full policy, Cilium provides a means of prescribing visibility via annotations when running in tandem with Kubernetes. Refer to [this](https://docs.cilium.io/en/stable/observability/visibility/) for details. [I have not been able to reproduce this example]
 
 For more advanced data-collecting and metrics, you should refer to [this demo](https://github.com/isovalent/cilium-grafana-observability-demo). [I have successfully reproduced this example]
+
+It should be noted that currently an Envoy is required to get L7 visibility, however, the eBPF-based HTTP visibility is possbile, and in fact available  in Isovalent Cilium Enterprise.
 
 ### Other Features
 
